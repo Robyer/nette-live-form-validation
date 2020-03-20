@@ -6,8 +6,39 @@
  * @url https://github.com/Robyer/nette-live-form-validation/
  */
 
-var LiveForm = {
-	options: {
+(function (global, factoryLiveValidation, factoryNetteForm) {
+
+  if (typeof define === 'function' && define.amd) {
+	// AMD
+    define(function () {
+      return {
+        LiveForm: factoryLiveValidation(global),
+        Nette: factoryNetteForm(global)
+      }
+    })
+  } else if (typeof exports === 'object') {
+    // Node, CommonJS-like
+    module.exports = {
+		LiveForm: factoryLiveValidation(global),
+		Nette: factoryNetteForm(global)
+	}
+  } else {
+    global.LiveForm = factoryLiveValidation(global);
+    // Browser globals (root is window)
+	var init = !global.Nette || !global.Nette.noInit;
+	global.Nette = factoryNetteForm(global);
+	if (init) {
+		global.Nette.initOnLoad();
+	}
+  }
+  
+  
+}(typeof window !== 'undefined' ? window : this, function (window) {
+  'use strict'
+  
+
+  var LiveForm = {
+    options: {
 		// CSS class of control's parent where error/valid class should be added; or "false" to use control directly
 		showMessageClassOnParent: 'form-group',
 
@@ -385,6 +416,8 @@ LiveForm.setFormProperty = function(form, propertyName, value) {
 	this.forms[form.id][propertyName] = value;
 };
 
+return LiveForm;
+
 ////////////////////////////   modified netteForms.js   ///////////////////////////////////
 
 /**
@@ -394,6 +427,8 @@ LiveForm.setFormProperty = function(form, propertyName, value) {
  * Copyright (c) 2004 David Grudl (https://davidgrudl.com)
  */
 
+// LiveForm: original netteForms.js code
+/*
 (function(global, factory) {
 	if (!global.JSON) {
 		return;
@@ -414,7 +449,10 @@ LiveForm.setFormProperty = function(form, propertyName, value) {
 	}
 
 }(typeof window !== 'undefined' ? window : this, function(window) {
+*/
 
+// LiveForm: addition
+}, function (window) {
 'use strict';
 
 var Nette = {};
@@ -1164,20 +1202,13 @@ Nette.initForm = function(form) {
  */
 Nette.initOnLoad = function() {
 	Nette.addEvent(document, 'DOMContentLoaded', function() {
+// LiveForm: original netteForms.js code 
+/*  
 		for (var i = 0; i < document.forms.length; i++) {
 			var form = document.forms[i];
 			for (var j = 0; j < form.elements.length; j++) {
 				if (form.elements[j].getAttribute('data-nette-rules')) {
 					Nette.initForm(form);
-
-					// LiveForm: addition
-					if (LiveForm.hasClass(form, 'validate-on-load')) {
-						// This is not so nice way, but I don't want to spoil validateForm, validateControl and other methods with another parameter
-						LiveForm.setFormProperty(form, "onLoadValidation", true);
-						Nette.validateForm(form);
-						LiveForm.setFormProperty(form, "onLoadValidation", false);
-					}
-
 					break;
 				}
 			}
@@ -1189,6 +1220,42 @@ Nette.initOnLoad = function() {
 				target.form['nette-submittedBy'] = target;
 			}
 		});
+*/
+    // LiveForm: addition
+    Nette.init();
+	});
+};
+
+// LiveForm: addition
+/**
+ * Init function to be called in case usage as module
+ * 
+ * @public 
+ */
+Nette.init = function() {
+  for (var i = 0; i < document.forms.length; i++) {
+		var form = document.forms[i];
+		for (var j = 0; j < form.elements.length; j++) {
+			if (form.elements[j].getAttribute('data-nette-rules')) {
+					Nette.initForm(form);
+
+				if (LiveForm.hasClass(form, 'validate-on-load')) {
+					// This is not so nice way, but I don't want to spoil validateForm, validateControl and other methods with another parameter
+					LiveForm.setFormProperty(form, "onLoadValidation", true);
+					Nette.validateForm(form);
+					LiveForm.setFormProperty(form, "onLoadValidation", false);
+				}
+
+				break;
+			}
+		}
+	}
+
+	Nette.addEvent(document.body, 'click', function(e) {
+		var target = e.target || e.srcElement;
+		if (target.form && target.type in {submit: 1, image: 1}) {
+			target.form['nette-submittedBy'] = target;
+		}
 	});
 };
 
